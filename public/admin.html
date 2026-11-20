@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel Admin · Rota Express</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#08121F; --s1:#0E1B2E; --s2:#13233A; --line:rgba(255,255,255,.1);
+    --tx:#F4F7FB; --mut:#8C9DB5; --acc:#F5A524; --accInk:#1A1205; --ok:#2BD47D; --danger:#FF6B6B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);padding:20px 16px 60px;line-height:1.4}
+  .wrap{max-width:640px;margin:0 auto}
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+  .top h1{font-family:'Archivo',sans-serif;font-size:22px;font-weight:900}
+  .top h1 span{color:var(--acc)}
+  .link-app{color:var(--ok);text-decoration:none;font-size:13px;font-weight:700;background:rgba(43,212,125,.12);padding:8px 12px;border-radius:10px;border:1px solid rgba(43,212,125,.3)}
+
+  .card{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px}
+  .card h2{font-family:'Archivo',sans-serif;font-size:16px;margin-bottom:14px;color:var(--acc)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:520px){.grid2{grid-template-columns:1fr}}
+
+  label{display:block;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--mut);margin-bottom:6px}
+  input,select,textarea{width:100%;background:var(--bg);border:1.5px solid var(--line);color:var(--tx);border-radius:12px;padding:12px 13px;font-family:inherit;font-size:14.5px;outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+  .field{margin-bottom:12px}
+
+  .step-item{background:var(--s2);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+  .step-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .step-head b{font-family:'Archivo',sans-serif;font-size:13.5px;color:var(--acc)}
+  .btn-del{background:rgba(255,107,107,.15);color:var(--danger);border:1px solid rgba(255,107,107,.3);border-radius:8px;padding:4px 9px;font-size:12px;font-weight:700;cursor:pointer}
+
+  .btn{width:100%;border:0;border-radius:14px;padding:15px;font-family:'Archivo',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:.15s}
+  .btn:active{transform:scale(.98)}
+  .btn-add{background:var(--s2);color:var(--tx);border:1px dashed var(--line);margin-bottom:16px}
+  .btn-save{background:linear-gradient(180deg,#FFC25C,var(--acc));color:var(--accInk)}
+
+  .msg{margin-top:14px;padding:12px 14px;border-radius:12px;font-size:13.5px;font-weight:600;display:none}
+  .msg.ok{display:block;background:rgba(43,212,125,.15);border:1px solid rgba(43,212,125,.4);color:#5FE3A0}
+  .msg.err{display:block;background:rgba(255,107,107,.15);border:1px solid rgba(255,107,107,.4);color:#FFB8B8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>PAINEL <span>ROTA EXPRESS</span></h1>
+    <a href="/" target="_blank" class="link-app">Abrir App Cliente ↗</a>
+  </div>
+
+  <div class="card">
+    <h2>1. Dados Principais da Entrega</h2>
+    <div class="grid2">
+      <div class="field">
+        <label>Código de Rastreio</label>
+        <input id="fCode" placeholder="Ex.: RTX-2026062-001">
+      </div>
+      <div class="field">
+        <label>Código para o Entregador</label>
+        <input id="fDriverCode" placeholder="Ex.: LIB-RTX-2026062-001">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label>Data Prevista de Entrega</label>
+        <input id="fDate" placeholder="Ex.: Hoje, 21/11/2026">
+      </div>
+      <div class="field">
+        <label>Horário Estimado</label>
+        <input id="fTime" placeholder="Ex.: 14:00 às 17:30">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <label>Região / Unidade Operacional</label>
+      <input id="fRegion" placeholder="Ex.: Rota Express · Unidade Destino">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. Etapas da Rota e Datas</h2>
+    <div id="stepsList"></div>
+    <button type="button" class="btn btn-add" onclick="addStep()">+ Adicionar nova etapa</button>
+  </div>
+
+  <div class="card">
+    <h2>3. Salvar Alterações</h2>
+    <div class="field">
+      <label>Senha do Painel Admin</label>
+      <input type="password" id="fPass" placeholder="Digite a senha (padrão: rota2026)">
+    </div>
+    <button type="button" class="btn btn-save" onclick="saveAll()">Salvar e Atualizar no App</button>
+    <div class="msg" id="statusMsg"></div>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  let steps = [];
+
+  async function loadCurrent(){
+    const res = await fetch('/api/tracking?t=' + Date.now());
+    const data = await res.json();
+    $('fCode').value = data.code || '';
+    $('fDriverCode').value = data.driverCode || '';
+    $('fDate').value = data.date || '';
+    $('fTime').value = data.time || '';
+    $('fRegion').value = data.region || '';
+    steps = data.steps || [];
+    renderSteps();
+  }
+
+  function renderSteps(){
+    $('stepsList').innerHTML = steps.map((s, i) => `
+      <div class="step-item">
+        <div class="step-head">
+          <b>Etapa #${i + 1}</b>
+          <button type="button" class="btn-del" onclick="removeStep(${i})">Remover</button>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label>Status</label>
+            <select onchange="steps[${i}].state=this.value">
+              <option value="done" ${s.state==='done'?'selected':''}>Concluída (Verde)</option>
+              <option value="now" ${s.state==='now'?'selected':''}>Em andamento (Laranja)</option>
+              <option value="pending" ${s.state==='pending'?'selected':''}>Pendente (Cinza)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Data e Hora da Etapa</label>
+            <input value="${s.time.replace(/"/g,'&quot;')}" oninput="steps[${i}].time=this.value" placeholder="Ex.: 20/11 · 08:15">
+          </div>
+        </div>
+        <div class="field">
+          <label>Título da Etapa</label>
+          <input value="${s.title.replace(/"/g,'&quot;')}" oninput="steps[${i}].title=this.value">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Descrição</label>
+          <input value="${s.desc.replace(/"/g,'&quot;')}" oninput="steps[${i}].desc=this.value">
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function addStep(){
+    steps.push({ state: 'pending', title: 'Nova etapa da rota', desc: 'Descrição do status da entrega.', time: 'Hoje · 12:00' });
+    renderSteps();
+  }
+
+  function removeStep(idx){
+    steps.splice(idx, 1);
+    renderSteps();
+  }
+
+  async function saveAll(){
+    const msg = $('statusMsg');
+    msg.className = 'msg';
+    const pass = $('fPass').value.trim();
+
+    const payload = {
+      code: $('fCode').value.trim(),
+      driverCode: $('fDriverCode').value.trim(),
+      date: $('fDate').value.trim(),
+      time: $('fTime').value.trim(),
+      region: $('fRegion').value.trim(),
+      steps
+    };
+
+    try {
+      const res = await fetch('/api/admin/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': pass
+        },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      if(!res.ok){
+        msg.textContent = json.error || 'Erro ao salvar.';
+        msg.classList.add('err');
+        return;
+      }
+      msg.textContent = 'Atualizado com sucesso! O app já está exibindo os novos dados.';
+      msg.classList.add('ok');
+      loadCurrent();
+    } catch(e){
+      msg.textContent = 'Falha de conexão com o servidor.';
+      msg.classList.add('err');
+    }
+  }
+
+  loadCurrent();
+</script>
+</body>
+</html>
