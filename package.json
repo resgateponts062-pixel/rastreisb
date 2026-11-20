@@ -1,0 +1,12 @@
+{
+  "name": "rota-express-server",
+  "version": "1.0.0",
+  "description": "Mini servidor e painel admin de rastreamento para Render",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
